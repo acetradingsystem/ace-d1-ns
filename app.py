@@ -142,11 +142,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── The Rule ───────────────────────────────────────────────────────────────────
-# Combine into one call to ensure the DOM updates correctly
 st.markdown("""
     <div class="rule-box" style="text-align: center;">
         <span class="rule-highlight">TIGHT CONSOLIDATION BREAKOUT SCANNER - TSX DAILY TIMEFRAME</span><br>
-        </div>
+        Narrow State: MA20 ≈ MA200 within 3% &nbsp;|&nbsp;
+        Elephant Bar: body larger than 70% of last 20 bars (Oliver Velez definition)<br>
+        Position +1 (Bull EB) and Position -1 (Bear EB) only &nbsp;|&nbsp; Entry and protection at your discretion
+    </div>
 """, unsafe_allow_html=True)
 
 
@@ -182,27 +184,25 @@ def fetch_holy_grail(symbol):
         prev      = hist.iloc[-11:-1]  # 10 days before today
 
         close     = float(today["Close"])
-        vol_today = float(today["Volume"])
         t_open    = float(today["Open"])
         t_high    = float(today["High"])
         t_low     = float(today["Low"])
 
-        if close < 5 or vol_today == 0:
+        if close < 5:
             return None
 
-        # Calculate MA20 and MA200
-        ma20  = float(hist["Close"].iloc[-21:-1].mean())   # 20 day MA (excluding today)
-        ma200 = float(hist["Close"].iloc[-201:-1].mean())  # 200 day MA (excluding today)
+        # ── MA20 and MA200 ────────────────────────────────────────────────────
+        ma20  = float(hist["Close"].iloc[-21:-1].mean())
+        ma200 = float(hist["Close"].iloc[-201:-1].mean())
 
-        # THREE FINGERS TIGHT — MA20 within 3% of MA200
-        # Check that the narrow state has been present for at least 10 days
+        # ── THREE FINGERS TIGHT — MA20 within 3% of MA200 ────────────────────
         ma_diff_pct = abs(ma20 - ma200) / ma200 * 100
         if ma_diff_pct > 3.0:
             return None
 
-        # Verify narrow state persisted for 10 days (not just today)
+        # ── Verify narrow state persisted for at least 5 of last 10 days ─────
         narrow_days = 0
-        for i in range(2, 12):  # check last 10 days
+        for i in range(2, 12):
             try:
                 ma20_i  = float(hist["Close"].iloc[-(20+i):-(i)].mean())
                 ma200_i = float(hist["Close"].iloc[-(200+i):-(i)].mean())
@@ -210,31 +210,42 @@ def fetch_holy_grail(symbol):
                 if diff_i <= 3.0:
                     narrow_days += 1
             except: pass
-        if narrow_days < 5:  # at least 5 of last 10 days must be tight
+        if narrow_days < 5:
             return None
 
-        # Volume checks
-        avg_vol   = float(prev["Volume"].mean())
-        vol_ratio = vol_today / avg_vol if avg_vol > 0 else 0
-        if vol_today < 100_000 or vol_ratio < 3.0:
+        # ── OLIVER VELEZ ELEPHANT BAR DEFINITION ─────────────────────────────
+        # Body must be larger than 70% of the last 20 bars
+        # i.e. today's body > 14 out of 20 recent bodies (70th percentile)
+        last_20_bodies = []
+        for i in range(2, 22):  # last 20 bars excluding today
+            try:
+                bar_open  = float(hist["Open"].iloc[-i])
+                bar_close = float(hist["Close"].iloc[-i])
+                last_20_bodies.append(abs(bar_close - bar_open))
+            except: pass
+
+        if len(last_20_bodies) < 10:
             return None
 
-        # Candle body size
-        body_pct  = abs(close - t_open) / close * 100
-        if body_pct < 3.0:
+        today_body = abs(close - t_open)
+        last_20_bodies_sorted = sorted(last_20_bodies)
+        percentile_70 = last_20_bodies_sorted[int(len(last_20_bodies_sorted) * 0.70)]
+
+        # Today's body must be larger than 70th percentile of last 20 bars
+        if today_body <= percentile_70:
             return None
 
-        # Day range position
+        # ── Day range position ────────────────────────────────────────────────
         day_range = t_high - t_low
         close_pos = (close - t_low) / day_range * 100 if day_range > 0 else 0
 
-        # 10-day high/low
+        # ── 10-day high/low for breakout detection ────────────────────────────
         high_10d  = float(prev["High"].max())
         low_10d   = float(prev["Low"].min())
         range_10d = high_10d - low_10d
         range_pct = range_10d / high_10d * 100 if high_10d > 0 else 0
 
-        # Sector filter
+        # ── Sector filter ─────────────────────────────────────────────────────
         try:
             info     = ticker.info
             sector   = (info.get("sector","") or "").lower()
@@ -245,12 +256,12 @@ def fetch_holy_grail(symbol):
             if any(s in industry for s in excl_i): return None
         except: pass
 
-        # BULL ELEPHANT — breaks above 10d high, closes near high
+        # ── BULL ELEPHANT — breaks above 10d high, closes near high ──────────
         is_bull = (close > high_10d and
                    close > t_open and
                    close_pos >= 75.0)
 
-        # BEAR ELEPHANT — breaks below 10d low, closes near low
+        # ── BEAR ELEPHANT — breaks below 10d low, closes near low ────────────
         is_bear = (close < low_10d and
                    close < t_open and
                    close_pos <= 25.0)
@@ -261,42 +272,46 @@ def fetch_holy_grail(symbol):
         direction  = "BULL" if is_bull else "BEAR"
         breakout   = (close - high_10d) / high_10d * 100 if is_bull else (low_10d - close) / low_10d * 100
 
-        # Scoring
+        # ── Scoring ───────────────────────────────────────────────────────────
         # MA tightness (0-4)
         if ma_diff_pct < 0.5:   ma_score = 4
         elif ma_diff_pct < 1.0: ma_score = 3
         elif ma_diff_pct < 2.0: ma_score = 2
         else:                   ma_score = 1
 
-        # Volume score (0-3)
-        if vol_ratio >= 7:    vol_score = 3
-        elif vol_ratio >= 5:  vol_score = 2
-        else:                 vol_score = 1
+        # Elephant Bar strength — how far above the 70th percentile (0-3)
+        # How many of the last 20 bars does today's body beat?
+        bars_beaten = sum(1 for b in last_20_bodies if today_body > b)
+        bars_beaten_pct = bars_beaten / len(last_20_bodies) * 100
+        if bars_beaten_pct >= 95:   eb_score = 3   # beats 95%+ = exceptional EB
+        elif bars_beaten_pct >= 85: eb_score = 2   # beats 85%+ = strong EB
+        else:                       eb_score = 1   # beats 70%+ = valid EB
 
-        # Body score (0-2)
-        if body_pct >= 5:     body_score = 2
-        elif body_pct >= 3:   body_score = 1
-        else:                 body_score = 0
+        # Close position score (0-2)
+        if close_pos >= 90:   pos_score = 2
+        elif close_pos >= 75: pos_score = 1
+        else:                 pos_score = 0
 
         # Breakout score (0-2)
         if breakout >= 3:     bo_score = 2
         elif breakout >= 1:   bo_score = 1
         else:                 bo_score = 0
 
-        total = ma_score + vol_score + body_score + bo_score
+        total = ma_score + eb_score + pos_score + bo_score
+
+        # ── EB percentile for display ─────────────────────────────────────────
+        eb_pct = round(bars_beaten_pct, 1)
 
         return {
             "symbol":      symbol.replace(".TO",""),
             "direction":   direction,
             "score":       total,
             "ma_score":    ma_score,
-            "vol_score":   vol_score,
-            "body_score":  body_score,
+            "eb_score":    eb_score,
+            "pos_score":   pos_score,
             "bo_score":    bo_score,
             "close":       round(close, 2),
-            "volume":      int(vol_today),
-            "vol_ratio":   round(vol_ratio, 1),
-            "body_pct":    round(body_pct, 1),
+            "eb_pct":      eb_pct,
             "close_pos":   round(close_pos, 1),
             "ma20":        round(ma20, 2),
             "ma200":       round(ma200, 2),
@@ -326,7 +341,7 @@ def run_holy_grail_scan():
                 r = f.result()
                 if r: results.append(r)
             except: pass
-    results.sort(key=lambda x: (-x["score"], -x["vol_ratio"]))
+    results.sort(key=lambda x: (-x["score"], -x["eb_pct"]))
     progress.progress(100, text="Scan complete!")
     time.sleep(0.5)
     progress.empty()
@@ -371,17 +386,17 @@ def display_results(results):
             </div>
             <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.8rem;margin-bottom:0.8rem">
                 <div><div class="metric-label">Price CAD</div><div class="metric-value {close_color}">${r['close']:,.2f}</div></div>
-                <div><div class="metric-label">Volume</div><div class="metric-value">{r['volume']:,}</div></div>
-                <div><div class="metric-label">Vol Surge</div><div class="metric-value metric-gold">{r['vol_ratio']}x</div></div>
-                <div><div class="metric-label">Body %</div><div class="metric-value">{r['body_pct']}%</div></div>
+                <div><div class="metric-label">EB Strength</div><div class="metric-value metric-gold">{r['eb_pct']}%ile</div></div>
                 <div><div class="metric-label">Close Pos</div><div class="metric-value">{r['close_pos']}%</div></div>
                 <div><div class="metric-label">Breakout</div><div class="metric-value {close_color}">+{r['breakout_pct']}%</div></div>
+                <div><div class="metric-label">10d High</div><div class="metric-value">${r['high_10d']}</div></div>
+                <div><div class="metric-label">10d Low</div><div class="metric-value">${r['low_10d']}</div></div>
             </div>
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.8rem">
                 <div><div class="metric-label">MA20</div><div class="metric-value">${r['ma20']}</div></div>
                 <div><div class="metric-label">MA200</div><div class="metric-value">${r['ma200']}</div></div>
-                <div><div class="metric-label">10d High</div><div class="metric-value">${r['high_10d']}</div></div>
-                <div><div class="metric-label">10d Low</div><div class="metric-value">${r['low_10d']}</div></div>
+                <div><div class="metric-label">MA Diff</div><div class="metric-value">${r['ma_diff_pct']}%</div></div>
+                <div><div class="metric-label">Score</div><div class="metric-value">MA{r['ma_score']} EB{r['eb_score']} POS{r['pos_score']} BO{r['bo_score']}</div></div>
             </div>
         </div>""", unsafe_allow_html=True)
 
@@ -396,7 +411,7 @@ def display_results(results):
     # Bull Elephants
     regular_bulls = [r for r in bulls if r["score"] < 9]
     if bulls:
-        st.markdown('<div class="bull-header">🐘 BULL ELEPHANTS — LONG SETUPS</div>', unsafe_allow_html=True)
+        st.markdown('<div class="bull-header">🐘 BULL ELEPHANTS — LONG SETUPS (Position +1)</div>', unsafe_allow_html=True)
         for r in (holy if not regular_bulls else regular_bulls):
             if r["direction"] == "BULL":
                 render_card(r, "bull-card", "bull-name")
@@ -406,7 +421,7 @@ def display_results(results):
 
     # Bear Elephants
     if bears:
-        st.markdown('<div class="bear-header">🐻 BEAR ELEPHANTS — SHORT SETUPS (Questrade Margin)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="bear-header">🐻 BEAR ELEPHANTS — SHORT SETUPS (Position -1) — Questrade Margin</div>', unsafe_allow_html=True)
         for r in bears:
             render_card(r, "bear-card", "bear-name")
     else:
@@ -442,7 +457,8 @@ else:
     <div class="no-results">
         CLICK RUN SCAN TO START<br><br>
         Scans 640+ TSX stocks<br>
-        Detects when MA20 ≈ MA200 (Are Relatively Close Together)<br>
+        Detects when MA20 ≈ MA200 within 3% (Narrow State)<br>
+        Elephant Bar: body larger than 70% of last 20 bars (Oliver Velez)<br>
         Best run after 4:00pm EST on trading days
     </div>""", unsafe_allow_html=True)
 
