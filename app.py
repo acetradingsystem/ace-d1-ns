@@ -1,13 +1,13 @@
 import streamlit as st
-import requests
 import json
 import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import requests
 
 # ── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="ACE Holy Grail Scanner",
+    page_title="ACE Trading System — TSX Scanner",
     page_icon="♠",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -34,79 +34,61 @@ st.markdown("""
     font-size: 3.5rem;
     font-weight: 700;
     letter-spacing: 0.3em;
-    background: linear-gradient(135deg, #FFD700, #FFA500, #FFD700);
+    background: linear-gradient(135deg, #00d4aa, #0099ff, #00d4aa);
     background-size: 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     animation: shimmer 3s infinite;
 }
-@keyframes shimmer { 0% { background-position: 0% } 100% { background-position: 200% } }
+@keyframes shimmer {
+    0% { background-position: 0% }
+    100% { background-position: 200% }
+}
 .ace-subtitle { color: #a0c8e8; font-size: 0.75rem; letter-spacing: 0.4em; text-transform: uppercase; margin-top: 0.3rem; }
-.ace-tagline  { color: #4a6080; font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; margin-top: 0.2rem; }
+.ace-tagline  { color: #2a4060; font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; margin-top: 0.2rem; }
 
-.rule-box {
-    background: #0d1520;
-    border: 1px solid #1a3a1a;
-    border-radius: 8px;
-    padding: 1rem 1.5rem;
-    margin-bottom: 1.5rem;
+.section-header {
     font-family: 'Space Mono', monospace;
-    font-size: 0.72rem;
-    color: #6a90b0;
-    line-height: 2;
+    font-size: 0.75rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    padding: 0.6rem 1rem;
+    border: 1px solid #0099ff;
+    margin-bottom: 1.5rem;
+    color: #00ccff;
+    background: rgba(0,153,255,0.05);
+    text-align: center;
+    border-radius: 4px;
 }
-.rule-highlight { color: #FFD700; font-weight: 700; }
 
-.bull-header { color: #00d4aa; font-family: 'Space Mono', monospace; font-size: 0.75rem; letter-spacing: 0.3em; margin-bottom: 1rem; }
-.bear-header { color: #ff6b6b; font-family: 'Space Mono', monospace; font-size: 0.75rem; letter-spacing: 0.3em; margin-bottom: 1rem; margin-top: 2rem; }
+.score-10 { background: #FFD700; color: #000; padding: 2px 10px; border-radius: 3px; font-weight: 700; font-family: 'Space Mono', monospace; font-size: 0.9rem; }
+.score-9  { background: #FFA500; color: #000; padding: 2px 10px; border-radius: 3px; font-weight: 700; font-family: 'Space Mono', monospace; font-size: 0.9rem; }
+.score-8  { background: #00d4aa; color: #000; padding: 2px 10px; border-radius: 3px; font-weight: 700; font-family: 'Space Mono', monospace; font-size: 0.9rem; }
+.score-7  { background: #4FC3F7; color: #000; padding: 2px 10px; border-radius: 3px; font-weight: 700; font-family: 'Space Mono', monospace; font-size: 0.9rem; }
+.score-low { background: #1a2a3a; color: #4a6080; padding: 2px 10px; border-radius: 3px; font-family: 'Space Mono', monospace; font-size: 0.9rem; }
 
-.bull-card {
-    background: #0a1a0a;
-    border: 1px solid #00d4aa;
+.elephant-card {
+    background: #0d1520;
+    border: 1px solid #FFD700;
     border-radius: 8px;
     padding: 1.2rem;
     margin-bottom: 0.8rem;
-    box-shadow: 0 0 20px rgba(0,212,170,0.08);
+    box-shadow: 0 0 25px rgba(255,215,0,0.12);
 }
-.bear-card {
-    background: #1a0a0a;
-    border: 1px solid #ff6b6b;
+.regular-card {
+    background: #0d1520;
+    border: 1px solid #1a2a3a;
     border-radius: 8px;
     padding: 1.2rem;
     margin-bottom: 0.8rem;
-    box-shadow: 0 0 20px rgba(255,107,107,0.08);
 }
-.holy-grail-card {
-    background: #0d1a0d;
-    border: 2px solid #FFD700;
-    border-radius: 8px;
-    padding: 1.2rem;
-    margin-bottom: 0.8rem;
-    box-shadow: 0 0 30px rgba(255,215,0,0.15);
-}
+.regular-card:hover { border-color: #0099ff33; }
 
-.coin-name { font-size: 1.2rem; font-weight: 700; font-family: 'Space Mono', monospace; }
-.bull-name { color: #00d4aa; }
-.bear-name { color: #ff6b6b; }
-.gold-name { color: #FFD700; }
-
+.coin-name { font-size: 1.2rem; font-weight: 700; color: #fff; font-family: 'Space Mono', monospace; }
 .metric-label { font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; color: #6a90b0; margin-bottom: 2px; }
 .metric-value { font-size: 0.88rem; font-family: 'Space Mono', monospace; color: #b0d0f0; }
 .metric-green { color: #00d4aa; }
-.metric-red   { color: #ff6b6b; }
 .metric-gold  { color: #FFD700; }
-
-.ma-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.7rem;
-    font-weight: 700;
-    background: #FFD700;
-    color: #000;
-    margin-left: 8px;
-}
 
 .stat-box {
     background: #0d1520;
@@ -116,20 +98,22 @@ st.markdown("""
     text-align: center;
 }
 .stat-number { font-size: 2rem; font-weight: 700; font-family: 'Space Mono', monospace; }
-.stat-label  { font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase; color: #6a90b0; margin-top: 0.2rem; }
+.stat-label  { font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase; color: #8ab0d0; margin-top: 0.2rem; }
 
 .no-results {
     text-align: center;
     padding: 3rem;
-    color: #6a90b0;
+    color: #8ab0d0;
     font-family: 'Space Mono', monospace;
     font-size: 0.78rem;
     letter-spacing: 0.15em;
     border: 1px dashed #1a2a3a;
     border-radius: 8px;
-    line-height: 2.5;
+    line-height: 2;
 }
-.timestamp { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: #4a6080; text-align: center; margin-bottom: 1.2rem; }
+.timestamp { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: #6a90b0; text-align: center; margin-bottom: 1.2rem; }
+.elephant-label { color: #FFD700; font-size: 0.78rem; font-family: 'Space Mono', monospace; font-size: 0.7rem; letter-spacing: 0.3em; margin-bottom: 1rem; }
+.regular-label  { color: #00ccff; font-family: 'Space Mono', monospace; font-size: 0.7rem; letter-spacing: 0.3em; margin-bottom: 1rem; margin-top: 1.5rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -141,18 +125,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── The Rule ───────────────────────────────────────────────────────────────────
-st.markdown("""
-    <div class="rule-box" style="text-align: center;">
-        <span class="rule-highlight">TIGHT CONSOLIDATION BREAKOUT SCANNER - TSX DAILY TIMEFRAME</span><br>
-        Narrow State: MA20 ≈ MA200 within 3% &nbsp;|&nbsp;
-        Elephant Bar: body larger than 70% of last 20 bars (Oliver Velez definition)<br>
-        Position +1 (Bull EB) and Position -1 (Bear EB) only &nbsp;|&nbsp; Entry and protection at your discretion
-    </div>
-""", unsafe_allow_html=True)
-
-
-# ── Scanner Functions ──────────────────────────────────────────────────────────
+# ── TSX Scanner Functions ──────────────────────────────────────────────────────
 def get_tsx_symbols():
     try:
         url = "https://www.tsx.com/json/company-directory/search/tsx/^*"
@@ -172,80 +145,27 @@ def get_tsx_symbols():
         return ["SHOP.TO","BB.TO","LSPD.TO","NFI.TO","MRE.TO","TLRY.TO",
                 "ATZ.TO","GIL.TO","DOL.TO","MRU.TO","WSP.TO","CAE.TO"]
 
-def fetch_holy_grail(symbol):
+def fetch_tsx_stock(symbol):
     try:
         import yfinance as yf
         ticker = yf.Ticker(symbol)
-        hist   = ticker.history(period="120d")
-        if hist.empty or len(hist) < 205:
-            return None
+        hist   = ticker.history(period="60d")
+        if hist.empty or len(hist) < 22: return None
 
-        today     = hist.iloc[-1]
-        prev      = hist.iloc[-11:-1]  # 10 days before today
+        today  = hist.iloc[-1]
+        prev   = hist.iloc[-11:-1]
+        close  = float(today["Close"])
 
-        close     = float(today["Close"])
-        t_open    = float(today["Open"])
-        t_high    = float(today["High"])
-        t_low     = float(today["Low"])
+        if close < 5: return None
 
-        if close < 5:
-            return None
+        high_10   = float(prev["High"].max())
+        low_10    = float(prev["Low"].min())
+        range_pct = (high_10 - low_10) / high_10 if high_10 > 0 else 1
 
-        # ── MA20 and MA200 ────────────────────────────────────────────────────
-        ma20  = float(hist["Close"].iloc[-21:-1].mean())
-        ma200 = float(hist["Close"].iloc[-201:-1].mean())
+        # Consolidation filter — range must be less than 10%
+        if range_pct > 0.10 or close <= high_10: return None
 
-        # ── THREE FINGERS TIGHT — MA20 within 3% of MA200 ────────────────────
-        ma_diff_pct = abs(ma20 - ma200) / ma200 * 100
-        if ma_diff_pct > 3.0:
-            return None
-
-        # ── Verify narrow state persisted for at least 5 of last 10 days ─────
-        narrow_days = 0
-        for i in range(2, 12):
-            try:
-                ma20_i  = float(hist["Close"].iloc[-(20+i):-(i)].mean())
-                ma200_i = float(hist["Close"].iloc[-(200+i):-(i)].mean())
-                diff_i  = abs(ma20_i - ma200_i) / ma200_i * 100
-                if diff_i <= 3.0:
-                    narrow_days += 1
-            except: pass
-        if narrow_days < 5:
-            return None
-
-        # ── OLIVER VELEZ ELEPHANT BAR DEFINITION ─────────────────────────────
-        # Body must be larger than 70% of the last 20 bars
-        # i.e. today's body > 14 out of 20 recent bodies (70th percentile)
-        last_20_bodies = []
-        for i in range(2, 22):  # last 20 bars excluding today
-            try:
-                bar_open  = float(hist["Open"].iloc[-i])
-                bar_close = float(hist["Close"].iloc[-i])
-                last_20_bodies.append(abs(bar_close - bar_open))
-            except: pass
-
-        if len(last_20_bodies) < 10:
-            return None
-
-        today_body = abs(close - t_open)
-        last_20_bodies_sorted = sorted(last_20_bodies)
-        percentile_70 = last_20_bodies_sorted[int(len(last_20_bodies_sorted) * 0.70)]
-
-        # Today's body must be larger than 70th percentile of last 20 bars
-        if today_body <= percentile_70:
-            return None
-
-        # ── Day range position ────────────────────────────────────────────────
-        day_range = t_high - t_low
-        close_pos = (close - t_low) / day_range * 100 if day_range > 0 else 0
-
-        # ── 10-day high/low for breakout detection ────────────────────────────
-        high_10d  = float(prev["High"].max())
-        low_10d   = float(prev["Low"].min())
-        range_10d = high_10d - low_10d
-        range_pct = range_10d / high_10d * 100 if high_10d > 0 else 0
-
-        # ── Sector filter ─────────────────────────────────────────────────────
+        # Sector filter
         try:
             info     = ticker.info
             sector   = (info.get("sector","") or "").lower()
@@ -256,87 +176,99 @@ def fetch_holy_grail(symbol):
             if any(s in industry for s in excl_i): return None
         except: pass
 
-        # ── BULL ELEPHANT — breaks above 10d high, closes near high ──────────
-        is_bull = (close > high_10d and
-                   close > t_open and
-                   close_pos >= 75.0)
+        t_open    = float(today["Open"])
+        t_high    = float(today["High"])
+        t_low     = float(today["Low"])
+        brkout    = (close - high_10) / high_10 * 100
+        day_range = t_high - t_low
+        close_pos = (close - t_low) / day_range * 100 if day_range > 0 else 0
 
-        # ── BEAR ELEPHANT — breaks below 10d low, closes near low ────────────
-        is_bear = (close < low_10d and
-                   close < t_open and
-                   close_pos <= 25.0)
-
-        if not is_bull and not is_bear:
+        # ── FLAT MA20 FILTER (Oliver Velez — price within 3% of MA20) ──────────
+        # Flat MA20 = balance between buyers and sellers = consolidation state
+        # We check yesterday's close vs MA20 (before today's breakout move)
+        ma20  = float(hist["Close"].iloc[-21:-1].mean())
+        prev_close = float(hist["Close"].iloc[-2])
+        price_to_ma20 = abs(prev_close - ma20) / ma20 * 100
+        if price_to_ma20 > 3.0:
             return None
 
-        direction  = "BULL" if is_bull else "BEAR"
-        breakout   = (close - high_10d) / high_10d * 100 if is_bull else (low_10d - close) / low_10d * 100
+        # ── OLIVER VELEZ ELEPHANT BAR DEFINITION ─────────────────────────────
+        # Body must be larger than 70% of the last 20 bars
+        last_20_bodies = []
+        for i in range(2, 22):
+            try:
+                bar_open  = float(hist["Open"].iloc[-i])
+                bar_close = float(hist["Close"].iloc[-i])
+                last_20_bodies.append(abs(bar_close - bar_open))
+            except: pass
+
+        if len(last_20_bodies) < 10: return None
+
+        today_body = abs(close - t_open)
+        last_20_sorted = sorted(last_20_bodies)
+        percentile_70  = last_20_sorted[int(len(last_20_sorted) * 0.70)]
+
+        # True Elephant Bar = body beats 70th percentile AND closes near high
+        is_elephant = (today_body > percentile_70 and close_pos >= 75.0)
+
+        # How many bars does today's body beat (for display)
+        bars_beaten     = sum(1 for b in last_20_bodies if today_body > b)
+        eb_pct          = round(bars_beaten / len(last_20_bodies) * 100, 1)
+
+        # Body % for display
+        body_pct = abs(close - t_open) / close * 100
 
         # ── Scoring ───────────────────────────────────────────────────────────
-        # MA tightness (0-4)
-        if ma_diff_pct < 0.5:   ma_score = 4
-        elif ma_diff_pct < 1.0: ma_score = 3
-        elif ma_diff_pct < 2.0: ma_score = 2
-        else:                   ma_score = 1
+        # Consolidation tightness (0-5)
+        n = 5 if range_pct<0.02 else 4 if range_pct<0.03 else 3 if range_pct<0.05 else 2 if range_pct<0.06 else 1
 
-        # Elephant Bar strength — how far above the 70th percentile (0-3)
-        # How many of the last 20 bars does today's body beat?
-        bars_beaten = sum(1 for b in last_20_bodies if today_body > b)
-        bars_beaten_pct = bars_beaten / len(last_20_bodies) * 100
-        if bars_beaten_pct >= 95:   eb_score = 3   # beats 95%+ = exceptional EB
-        elif bars_beaten_pct >= 85: eb_score = 2   # beats 85%+ = strong EB
-        else:                       eb_score = 1   # beats 70%+ = valid EB
+        # Elephant Bar strength (0-3)
+        if eb_pct >= 95:   e = 3
+        elif eb_pct >= 85: e = 2
+        elif eb_pct >= 70: e = 1
+        else:              e = 0
 
-        # Close position score (0-2)
-        if close_pos >= 90:   pos_score = 2
-        elif close_pos >= 75: pos_score = 1
-        else:                 pos_score = 0
+        # Breakout strength (0-2)
+        b = 2 if brkout >= 3 else 1 if brkout >= 1 else 0
 
-        # Breakout score (0-2)
-        if breakout >= 3:     bo_score = 2
-        elif breakout >= 1:   bo_score = 1
-        else:                 bo_score = 0
+        # Close position (0-2)
+        p = 2 if close_pos >= 90 else 1 if close_pos >= 75 else 0
 
-        total = ma_score + eb_score + pos_score + bo_score
-
-        # ── EB percentile for display ─────────────────────────────────────────
-        eb_pct = round(bars_beaten_pct, 1)
+        total = n + e + b + p
 
         return {
-            "symbol":      symbol.replace(".TO",""),
-            "direction":   direction,
-            "score":       total,
-            "ma_score":    ma_score,
-            "eb_score":    eb_score,
-            "pos_score":   pos_score,
-            "bo_score":    bo_score,
-            "close":       round(close, 2),
-            "eb_pct":      eb_pct,
-            "close_pos":   round(close_pos, 1),
-            "ma20":        round(ma20, 2),
-            "ma200":       round(ma200, 2),
-            "ma_diff_pct": round(ma_diff_pct, 2),
-            "high_10d":    round(high_10d, 2),
-            "low_10d":     round(low_10d, 2),
-            "range_pct":   round(range_pct, 2),
-            "breakout_pct":round(breakout, 2),
+            "symbol":         symbol.replace(".TO",""),
+            "score":          total,
+            "n": n, "e": e, "b": b, "p": p,
+            "elephant":       is_elephant,
+            "eb_pct":         eb_pct,
+            "close":          round(close, 2),
+            "volume":         int(today["Volume"]),
+            "body_pct":       round(body_pct, 1),
+            "close_pos":      round(close_pos, 1),
+            "range_pct":      round(range_pct*100, 2),
+            "breakout_pct":   round(brkout, 2),
+            "high_10d":       round(high_10, 2),
+            "low_10d":        round(low_10, 2),
+            "ma20":           round(ma20, 2),
+            "price_to_ma20":  round(price_to_ma20, 2),
         }
     except: return None
 
-def run_holy_grail_scan():
+def run_tsx_scan():
     progress = st.progress(0, text="Fetching TSX symbol list from TMX...")
     symbols  = get_tsx_symbols()
     total    = len(symbols)
-    progress.progress(10, text=f"Scanning {total} TSX stocks for Holy Grail setups (3-5 min)...")
+    progress.progress(10, text=f"Scanning {total} TSX stocks — this takes 3-5 minutes...")
     results  = []
     done     = 0
     with ThreadPoolExecutor(max_workers=8) as ex:
-        futures = {ex.submit(fetch_holy_grail, s): s for s in symbols}
+        futures = {ex.submit(fetch_tsx_stock, s): s for s in symbols}
         for f in as_completed(futures):
             done += 1
             if done % 60 == 0:
                 pct = 10 + int(done/total*85)
-                progress.progress(pct, text=f"Progress: {done}/{total} | Holy Grail setups found: {len(results)}")
+                progress.progress(pct, text=f"Progress: {done}/{total} | Breakouts found: {len(results)}")
             try:
                 r = f.result()
                 if r: results.append(r)
@@ -347,117 +279,116 @@ def run_holy_grail_scan():
     progress.empty()
     return results
 
+# ── Score Badge ────────────────────────────────────────────────────────────────
 def score_badge(score):
-    if score >= 10: bg, fg = "#FFD700", "#000"
-    elif score >= 8: bg, fg = "#00d4aa", "#000"
-    elif score >= 6: bg, fg = "#4FC3F7", "#000"
-    else: bg, fg = "#1a2a3a", "#6a90b0"
-    return f'<span style="background:{bg};color:{fg};padding:2px 10px;border-radius:3px;font-family:Space Mono,monospace;font-weight:700;font-size:0.9rem">{score}</span>'
+    cls = ("score-10" if score==10 else "score-9" if score==9 else
+           "score-8"  if score>=8  else "score-7"  if score>=7 else "score-low")
+    return f'<span class="{cls}">{score}</span>'
 
+# ── Display Results ────────────────────────────────────────────────────────────
 def display_results(results):
-    bulls = [r for r in results if r["direction"] == "BULL"]
-    bears = [r for r in results if r["direction"] == "BEAR"]
-    holy  = [r for r in results if r["score"] >= 9]
+    elephants = [r for r in results if r["elephant"]]
+    regular   = [r for r in results if not r["elephant"]]
 
     # Stats
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(f'<div class="stat-box"><div class="stat-number metric-gold">{len(holy)}</div><div class="stat-label">🏆 Holy Grail (9+)</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="stat-box"><div class="stat-number metric-gold">{len(elephants)}</div><div class="stat-label">🐘 Elephant Bars</div></div>', unsafe_allow_html=True)
     with c2:
-        st.markdown(f'<div class="stat-box"><div class="stat-number metric-green">{len(bulls)}</div><div class="stat-label">🐘 Bull Elephants</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="stat-box"><div class="stat-number" style="color:#0099ff">{len(regular)}</div><div class="stat-label">Regular Breakouts</div></div>', unsafe_allow_html=True)
     with c3:
-        st.markdown(f'<div class="stat-box"><div class="stat-number metric-red">{len(bears)}</div><div class="stat-label">🐻 Bear Elephants</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="stat-box"><div class="stat-number" style="color:#fff">{len(results)}</div><div class="stat-label">Total Breakouts</div></div>', unsafe_allow_html=True)
     with c4:
-        st.markdown(f'<div class="stat-box"><div class="stat-number" style="color:#fff">{len(results)}</div><div class="stat-label">Total Setups</div></div>', unsafe_allow_html=True)
+        top = results[0]["score"] if results else 0
+        st.markdown(f'<div class="stat-box"><div class="stat-number metric-gold">{top}</div><div class="stat-label">Top Score Today</div></div>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    def render_card(r, card_class, name_class):
-        direction_emoji = "🐘" if r["direction"] == "BULL" else "🐻"
-        close_color = "metric-green" if r["direction"] == "BULL" else "metric-red"
-        st.markdown(f"""
-        <div class="{card_class}">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem">
-                <span class="coin-name {name_class}">{direction_emoji} {r['symbol']}</span>
-                <div style="display:flex;align-items:center;gap:0.5rem">
-                    <span class="ma-badge">MA∆ {r['ma_diff_pct']}%</span>
+    # Elephant Bars
+    if elephants:
+        st.markdown('<div class="elephant-label">🐘 ELEPHANT BARS — A+ SETUPS — CHECK LOCATION BEFORE TRADING</div>', unsafe_allow_html=True)
+        for r in elephants:
+            st.markdown(f"""
+            <div class="elephant-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem">
+                    <span class="coin-name">🐘 {r['symbol']}</span>
                     {score_badge(r['score'])}
                 </div>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.8rem;margin-bottom:0.8rem">
-                <div><div class="metric-label">Price CAD</div><div class="metric-value {close_color}">${r['close']:,.2f}</div></div>
-                <div><div class="metric-label">EB Strength</div><div class="metric-value metric-gold">{r['eb_pct']}%ile</div></div>
-                <div><div class="metric-label">Close Pos</div><div class="metric-value">{r['close_pos']}%</div></div>
-                <div><div class="metric-label">Breakout</div><div class="metric-value {close_color}">+{r['breakout_pct']}%</div></div>
-                <div><div class="metric-label">10d High</div><div class="metric-value">${r['high_10d']}</div></div>
-                <div><div class="metric-label">10d Low</div><div class="metric-value">${r['low_10d']}</div></div>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.8rem">
-                <div><div class="metric-label">MA20</div><div class="metric-value">${r['ma20']}</div></div>
-                <div><div class="metric-label">MA200</div><div class="metric-value">${r['ma200']}</div></div>
-                <div><div class="metric-label">MA Diff</div><div class="metric-value">${r['ma_diff_pct']}%</div></div>
-                <div><div class="metric-label">Score</div><div class="metric-value">MA{r['ma_score']} EB{r['eb_score']} POS{r['pos_score']} BO{r['bo_score']}</div></div>
-            </div>
-        </div>""", unsafe_allow_html=True)
-
-    # Holy Grail setups first
-    if holy:
-        st.markdown('<div class="bull-header">🏆 HOLY GRAIL SETUPS — SCORE 9+ — HIGHEST CONVICTION</div>', unsafe_allow_html=True)
-        for r in holy:
-            card = "holy-grail-card"
-            name = "gold-name"
-            render_card(r, card, name)
-
-    # Bull Elephants
-    regular_bulls = [r for r in bulls if r["score"] < 9]
-    if bulls:
-        st.markdown('<div class="bull-header">🐘 BULL ELEPHANTS — LONG SETUPS (Position +1)</div>', unsafe_allow_html=True)
-        for r in (holy if not regular_bulls else regular_bulls):
-            if r["direction"] == "BULL":
-                render_card(r, "bull-card", "bull-name")
-
-    if not bulls:
-        st.markdown('<div style="color:#1a3a1a;font-family:Space Mono,monospace;font-size:0.75rem;text-align:center;padding:1rem;border:1px dashed #1a3a1a;border-radius:8px;margin-bottom:1rem">🐘 No Bull Elephant setups today</div>', unsafe_allow_html=True)
-
-    # Bear Elephants
-    if bears:
-        st.markdown('<div class="bear-header">🐻 BEAR ELEPHANTS — SHORT SETUPS (Position -1) — Questrade Margin</div>', unsafe_allow_html=True)
-        for r in bears:
-            render_card(r, "bear-card", "bear-name")
+                <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.8rem">
+                    <div><div class="metric-label">Price CAD</div><div class="metric-value">${r['close']:,.2f}</div></div>
+                    <div><div class="metric-label">EB Strength</div><div class="metric-value metric-gold">{r['eb_pct']}%ile</div></div>
+                    <div><div class="metric-label">Body %</div><div class="metric-value metric-green">{r['body_pct']}%</div></div>
+                    <div><div class="metric-label">Close Pos</div><div class="metric-value">{r['close_pos']}%</div></div>
+                    <div><div class="metric-label">Breakout</div><div class="metric-value metric-green">+{r['breakout_pct']}%</div></div>
+                    <div><div class="metric-label">Volume</div><div class="metric-value">{r['volume']:,}</div></div>
+                </div>
+                <div style="margin-top:0.8rem;display:grid;grid-template-columns:repeat(5,1fr);gap:0.8rem">
+                    <div><div class="metric-label">10d High</div><div class="metric-value">${r['high_10d']}</div></div>
+                    <div><div class="metric-label">10d Low</div><div class="metric-value">${r['low_10d']}</div></div>
+                    <div><div class="metric-label">MA20</div><div class="metric-value">${r['ma20']}</div></div>
+                    <div><div class="metric-label">Price/MA20</div><div class="metric-value metric-gold">{r['price_to_ma20']}%</div></div>
+                    <div><div class="metric-label">N·E·B·P</div><div class="metric-value">{r['n']}·{r['e']}·{r['b']}·{r['p']}</div></div>
+                </div>
+            </div>""", unsafe_allow_html=True)
     else:
-        st.markdown('<div style="color:#3a1a1a;font-family:Space Mono,monospace;font-size:0.75rem;text-align:center;padding:1rem;border:1px dashed #3a1a1a;border-radius:8px">🐻 No Bear Elephant setups today</div>', unsafe_allow_html=True)
+        st.markdown('<div style="color:#4a7a4a;font-family:Space Mono,monospace;font-size:0.75rem;text-align:center;padding:1.5rem;border:1px dashed #2a4a2a;border-radius:8px;margin-bottom:1rem">🐘 No Elephant Bars today — waiting for the A+ setup</div>', unsafe_allow_html=True)
 
-    if not results:
+    # Regular Breakouts
+    if regular:
+        st.markdown('<div class="regular-label">◈ REGULAR BREAKOUTS — WATCH LIST ONLY</div>', unsafe_allow_html=True)
+        for r in regular:
+            st.markdown(f"""
+            <div class="regular-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem">
+                    <span class="coin-name">{r['symbol']}</span>
+                    {score_badge(r['score'])}
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.8rem">
+                    <div><div class="metric-label">Price CAD</div><div class="metric-value">${r['close']:,.2f}</div></div>
+                    <div><div class="metric-label">EB Strength</div><div class="metric-value">{r['eb_pct']}%ile</div></div>
+                    <div><div class="metric-label">Body %</div><div class="metric-value">{r['body_pct']}%</div></div>
+                    <div><div class="metric-label">Close Pos</div><div class="metric-value">{r['close_pos']}%</div></div>
+                    <div><div class="metric-label">Breakout</div><div class="metric-value">+{r['breakout_pct']}%</div></div>
+                    <div><div class="metric-label">Volume</div><div class="metric-value">{r['volume']:,}</div></div>
+                </div>
+                <div style="margin-top:0.8rem;display:grid;grid-template-columns:repeat(5,1fr);gap:0.8rem">
+                    <div><div class="metric-label">10d High</div><div class="metric-value">${r['high_10d']}</div></div>
+                    <div><div class="metric-label">10d Low</div><div class="metric-value">${r['low_10d']}</div></div>
+                    <div><div class="metric-label">MA20</div><div class="metric-value">${r['ma20']}</div></div>
+                    <div><div class="metric-label">Price/MA20</div><div class="metric-value">{r['price_to_ma20']}%</div></div>
+                    <div><div class="metric-label">N·E·B·P</div><div class="metric-value">{r['n']}·{r['e']}·{r['b']}·{r['p']}</div></div>
+                </div>
+            </div>""", unsafe_allow_html=True)
+
+    if not elephants and not regular:
         st.markdown("""
         <div class="no-results">
-            NO HOLY GRAIL SETUPS TODAY<br><br>
-            The three fingers are not tight enough on any TSX stock<br>
-            OR no elephant bars fired from a tight MA state<br><br>
-            This is the rarest and highest quality signal<br>
-            Patience is the strategy<br><br>
+            NO BREAKOUTS FOUND TODAY<br><br>
+            TSX is consolidating or no elephant bars fired<br>
+            The scanner is telling you to stay on the sidelines<br><br>
             Best run after 4:00pm EST on trading days
         </div>""", unsafe_allow_html=True)
 
-# ── Main ───────────────────────────────────────────────────────────────────────
+# ── Main Layout ────────────────────────────────────────────────────────────────
+st.markdown('<div class="section-header">RANDOM CONSOLIDATION BREAKOUT SCANNER - TSX DAILY TIMEFRAME</div>', unsafe_allow_html=True)
+
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     run = st.button("▶  RUN D1 TSX SCAN", type="primary", use_container_width=True)
 
 if run:
     with st.spinner(""):
-        results = run_holy_grail_scan()
-        st.session_state["hg_results"] = results
-        st.session_state["hg_time"]    = datetime.now().strftime("%Y-%m-%d %H:%M ET")
+        results = run_tsx_scan()
+        st.session_state["tsx_results"] = results
+        st.session_state["tsx_time"]    = datetime.now().strftime("%Y-%m-%d %H:%M ET")
 
-if "hg_results" in st.session_state:
-    st.markdown(f'<div class="timestamp">Last scan: {st.session_state["hg_time"]}</div>', unsafe_allow_html=True)
-    display_results(st.session_state["hg_results"])
+if "tsx_results" in st.session_state:
+    st.markdown(f'<div class="timestamp">Last scan: {st.session_state["tsx_time"]}</div>', unsafe_allow_html=True)
+    display_results(st.session_state["tsx_results"])
 else:
     st.markdown("""
     <div class="no-results">
-        CLICK RUN SCAN TO START<br><br>
-        Scans 640+ TSX stocks<br>
-        Detects when MA20 ≈ MA200 within 3% (Narrow State)<br>
+        CLICK RUN TSX SCAN TO START<br><br>
         Elephant Bar: body larger than 70% of last 20 bars (Oliver Velez)<br>
         Best run after 4:00pm EST on trading days
     </div>""", unsafe_allow_html=True)
@@ -465,8 +396,8 @@ else:
 # ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="text-align:center;margin-top:3rem;padding-top:1rem;border-top:1px solid #1a2a3a">
-    <span style="font-family:Space Mono,monospace;font-size:0.6rem;letter-spacing:0.4em;color:#2a4060">
-        ♠ ACE 1 TAB · TIGHT CONSOLIDATION BREAKOUT · TSX · D1 · NOT FINANCIAL ADVICE
+    <span style="font-family:Space Mono,monospace;font-size:0.6rem;letter-spacing:0.4em;color:#1a2a3a">
+        ♠ ACE 2 RCB · RANDOM CONSOLIDATION BREAKOUT · TSX · D1 · NOT FINANCIAL ADVICE
     </span>
 </div>
 """, unsafe_allow_html=True)
