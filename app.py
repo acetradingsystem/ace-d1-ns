@@ -144,7 +144,7 @@ st.markdown("""
 # ── The Rule ───────────────────────────────────────────────────────────────────
 st.markdown("""
     <div class="rule-box" style="text-align: center;">
-        <span class="rule-highlight">TIGHT CONSOLIDATION BREAKOUT SCANNER - TSX DAILY TIMEFRAME</span><br>
+        <span class="rule-highlight">NARROW STATE SCANNER - TSX DAILY TIMEFRAME</span><br>
         Narrow State: MA20 ≈ MA200 within 3% &nbsp;|&nbsp;
         Elephant Bar: body larger than 70% of last 20 bars (Oliver Velez definition)<br>
         Position +1 (Bull EB) and Position -1 (Bear EB) only &nbsp;|&nbsp; Entry and protection at your discretion
