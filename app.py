@@ -145,10 +145,7 @@ st.markdown("""
 st.markdown("""
     <div class="rule-box" style="text-align: center;">
         <span class="rule-highlight">NARROW STATE SCANNER - TSX DAILY TIMEFRAME</span><br>
-        Narrow State: MA20 ≈ MA200 within 3% &nbsp;|&nbsp;
-        Elephant Bar: body larger than 70% of last 20 bars (Oliver Velez definition)<br>
-        Position +1 (Bull EB) and Position -1 (Bear EB) only &nbsp;|&nbsp; Entry and protection at your discretion
-    </div>
+      </div>
 """, unsafe_allow_html=True)
 
 
@@ -458,7 +455,7 @@ else:
         CLICK RUN SCAN TO START<br><br>
         Scans 640+ TSX stocks<br>
         Detects when MA20 ≈ MA200 within 3% (Narrow State)<br>
-        Elephant Bar: body larger than 70% of last 20 bars (Oliver Velez)<br>
+        Elephant Bar: body larger than 70% of last 20 bars<br>
         Best run after 4:00pm EST on trading days
     </div>""", unsafe_allow_html=True)
 
@@ -466,7 +463,7 @@ else:
 st.markdown("""
 <div style="text-align:center;margin-top:3rem;padding-top:1rem;border-top:1px solid #1a2a3a">
     <span style="font-family:Space Mono,monospace;font-size:0.6rem;letter-spacing:0.4em;color:#2a4060">
-        ♠ ACE 1 TAB · TIGHT CONSOLIDATION BREAKOUT · TSX · D1 · NOT FINANCIAL ADVICE
+        ♠ ACE NARROW STATE BREAKOUT · TSX · D1 · NOT FINANCIAL ADVICE
     </span>
 </div>
 """, unsafe_allow_html=True)
