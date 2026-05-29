@@ -173,7 +173,7 @@ def fetch_holy_grail(symbol):
     try:
         import yfinance as yf
         ticker = yf.Ticker(symbol)
-        hist   = ticker.history(period="120d")
+        hist   = ticker.history(period="300d")
         if hist.empty or len(hist) < 205:
             return None
 
