@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="ACE Holy Grail Scanner",
+    page_title="ACE Narrow State Scanner",
     page_icon="♠",
     layout="wide",
     initial_sidebar_state="collapsed"
