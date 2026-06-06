@@ -132,7 +132,7 @@ st.markdown("""
 .timestamp { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: #4a6080; text-align: center; margin-bottom: 1.2rem; }
 .rule-highlight {
     font-size: 1.5rem;
-    font-weight: bold;
+    font-weight: normal;
 }
 </style>
 """, unsafe_allow_html=True)
