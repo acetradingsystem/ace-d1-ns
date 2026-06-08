@@ -131,7 +131,7 @@ st.markdown("""
 }
 .timestamp { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: #4a6080; text-align: center; margin-bottom: 1.2rem; }
 .rule-highlight {
-    font-size: 1.5rem;
+    font-size: 1rem;
     font-weight: normal;
 }
 </style>
@@ -459,8 +459,7 @@ else:
         CLICK RUN SCAN TO START<br><br>
         Scans 640+ TSX stocks<br>
         Detects when MA20 ≈ MA200 within 3% (Narrow State)<br>
-        Elephant Bar: body larger than 70% of last 20 bars<br>
-        Best run after 4:00pm EST on trading days
+       Run after 4:00pm EST on trading days
     </div>""", unsafe_allow_html=True)
 
 # ── Footer ─────────────────────────────────────────────────────────────────────
