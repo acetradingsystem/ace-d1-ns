@@ -458,7 +458,7 @@ else:
     <div class="no-results">
         CLICK RUN SCAN TO START<br><br>
         Scans 640+ TSX stocks<br>
-        Detects when MA20 ≈ MA200 within 3% (Narrow State)<br>
+        Detects consolidation breakouts (Narrow State) elephant bar<br>
        Run after 4:00pm EST on trading days
     </div>""", unsafe_allow_html=True)
 
