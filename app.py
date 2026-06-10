@@ -373,7 +373,7 @@ def display_results(results):
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    def render_card(r, card_class, name_class):
+ def render_card(r, card_class, name_class):
         direction_emoji = "🐘" if r["direction"] == "BULL" else "🐻"
         close_color = "metric-green" if r["direction"] == "BULL" else "metric-red"
         st.markdown(f"""
@@ -385,19 +385,16 @@ def display_results(results):
                     {score_badge(r['score'])}
                 </div>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.8rem;margin-bottom:0.8rem">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.8rem;margin-bottom:0.8rem">
                 <div><div class="metric-label">Price CAD</div><div class="metric-value {close_color}">${r['close']:,.2f}</div></div>
-                <div><div class="metric-label">EB Strength</div><div class="metric-value metric-gold">{r['eb_pct']}%ile</div></div>
+                <div><div class="metric-label">EB Strength</div><div class="metric-value metric-gold">{r['eb_pct']}%</div></div>
                 <div><div class="metric-label">Close Pos</div><div class="metric-value">{r['close_pos']}%</div></div>
                 <div><div class="metric-label">Breakout</div><div class="metric-value {close_color}">+{r['breakout_pct']}%</div></div>
-                <div><div class="metric-label">10d High</div><div class="metric-value">${r['high_10d']}</div></div>
-                <div><div class="metric-label">10d Low</div><div class="metric-value">${r['low_10d']}</div></div>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.8rem">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.8rem">
                 <div><div class="metric-label">MA20</div><div class="metric-value">${r['ma20']}</div></div>
                 <div><div class="metric-label">MA200</div><div class="metric-value">${r['ma200']}</div></div>
-                <div><div class="metric-label">MA Diff</div><div class="metric-value">${r['ma_diff_pct']}%</div></div>
-                <div><div class="metric-label">Score</div><div class="metric-value">MA{r['ma_score']} EB{r['eb_score']} POS{r['pos_score']} BO{r['bo_score']}</div></div>
+                <div><div class="metric-label">MA Diff</div><div class="metric-value">{r['ma_diff_pct']}%</div></div>
             </div>
         </div>""", unsafe_allow_html=True)
 
