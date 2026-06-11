@@ -55,7 +55,7 @@ st.markdown("""
     color: #6a90b0;
     line-height: 2;
 }
-.rule-highlight { color: #FFD700; font-weight: 700; }
+.rule-highlight { color: #FFD700; font-weight: 700; font-size: 1rem; font-weight: normal; }
 
 .bull-header { color: #00d4aa; font-family: 'Space Mono', monospace; font-size: 0.75rem; letter-spacing: 0.3em; margin-bottom: 1rem; }
 .bear-header { color: #ff6b6b; font-family: 'Space Mono', monospace; font-size: 0.75rem; letter-spacing: 0.3em; margin-bottom: 1rem; margin-top: 2rem; }
@@ -130,10 +130,6 @@ st.markdown("""
     line-height: 2.5;
 }
 .timestamp { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: #4a6080; text-align: center; margin-bottom: 1.2rem; }
-.rule-highlight {
-    font-size: 1rem;
-    font-weight: normal;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -182,7 +178,7 @@ def fetch_holy_grail(symbol):
             return None
 
         today     = hist.iloc[-1]
-        prev      = hist.iloc[-11:-1]  # 10 days before today
+        prev      = hist.iloc[-11:-1]
 
         close     = float(today["Close"])
         t_open    = float(today["Open"])
@@ -192,16 +188,13 @@ def fetch_holy_grail(symbol):
         if close < 5:
             return None
 
-        # ── MA20 and MA200 ────────────────────────────────────────────────────
         ma20  = float(hist["Close"].iloc[-21:-1].mean())
         ma200 = float(hist["Close"].iloc[-201:-1].mean())
 
-        # ── THREE FINGERS TIGHT — MA20 within 3% of MA200 ────────────────────
         ma_diff_pct = abs(ma20 - ma200) / ma200 * 100
         if ma_diff_pct > 3.0:
             return None
 
-        # ── Verify narrow state persisted for at least 5 of last 10 days ─────
         narrow_days = 0
         for i in range(2, 12):
             try:
@@ -214,11 +207,8 @@ def fetch_holy_grail(symbol):
         if narrow_days < 5:
             return None
 
-        # ── OLIVER VELEZ ELEPHANT BAR DEFINITION ─────────────────────────────
-        # Body must be larger than 70% of the last 20 bars
-        # i.e. today's body > 14 out of 20 recent bodies (70th percentile)
         last_20_bodies = []
-        for i in range(2, 22):  # last 20 bars excluding today
+        for i in range(2, 22):
             try:
                 bar_open  = float(hist["Open"].iloc[-i])
                 bar_close = float(hist["Close"].iloc[-i])
@@ -232,21 +222,17 @@ def fetch_holy_grail(symbol):
         last_20_bodies_sorted = sorted(last_20_bodies)
         percentile_70 = last_20_bodies_sorted[int(len(last_20_bodies_sorted) * 0.70)]
 
-        # Today's body must be larger than 70th percentile of last 20 bars
         if today_body <= percentile_70:
             return None
 
-        # ── Day range position ────────────────────────────────────────────────
         day_range = t_high - t_low
         close_pos = (close - t_low) / day_range * 100 if day_range > 0 else 0
 
-        # ── 10-day high/low for breakout detection ────────────────────────────
         high_10d  = float(prev["High"].max())
         low_10d   = float(prev["Low"].min())
         range_10d = high_10d - low_10d
         range_pct = range_10d / high_10d * 100 if high_10d > 0 else 0
 
-        # ── Sector filter ─────────────────────────────────────────────────────
         try:
             info     = ticker.info
             sector   = (info.get("sector","") or "").lower()
@@ -257,70 +243,55 @@ def fetch_holy_grail(symbol):
             if any(s in industry for s in excl_i): return None
         except: pass
 
-        # ── BULL ELEPHANT — breaks above 10d high, closes near high ──────────
-        is_bull = (close > high_10d and
-                   close > t_open and
-                   close_pos >= 75.0)
-
-        # ── BEAR ELEPHANT — breaks below 10d low, closes near low ────────────
-        is_bear = (close < low_10d and
-                   close < t_open and
-                   close_pos <= 25.0)
+        is_bull = (close > high_10d and close > t_open and close_pos >= 75.0)
+        is_bear = (close < low_10d and close < t_open and close_pos <= 25.0)
 
         if not is_bull and not is_bear:
             return None
 
-        direction  = "BULL" if is_bull else "BEAR"
-        breakout   = (close - high_10d) / high_10d * 100 if is_bull else (low_10d - close) / low_10d * 100
+        direction = "BULL" if is_bull else "BEAR"
+        breakout  = (close - high_10d) / high_10d * 100 if is_bull else (low_10d - close) / low_10d * 100
 
-        # ── Scoring ───────────────────────────────────────────────────────────
-        # MA tightness (0-4)
         if ma_diff_pct < 0.5:   ma_score = 4
         elif ma_diff_pct < 1.0: ma_score = 3
         elif ma_diff_pct < 2.0: ma_score = 2
         else:                   ma_score = 1
 
-        # Elephant Bar strength — how far above the 70th percentile (0-3)
-        # How many of the last 20 bars does today's body beat?
         bars_beaten = sum(1 for b in last_20_bodies if today_body > b)
         bars_beaten_pct = bars_beaten / len(last_20_bodies) * 100
-        if bars_beaten_pct >= 95:   eb_score = 3   # beats 95%+ = exceptional EB
-        elif bars_beaten_pct >= 85: eb_score = 2   # beats 85%+ = strong EB
-        else:                       eb_score = 1   # beats 70%+ = valid EB
+        if bars_beaten_pct >= 95:   eb_score = 3
+        elif bars_beaten_pct >= 85: eb_score = 2
+        else:                       eb_score = 1
 
-        # Close position score (0-2)
         if close_pos >= 90:   pos_score = 2
         elif close_pos >= 75: pos_score = 1
         else:                 pos_score = 0
 
-        # Breakout score (0-2)
-        if breakout >= 3:     bo_score = 2
-        elif breakout >= 1:   bo_score = 1
-        else:                 bo_score = 0
+        if breakout >= 3:   bo_score = 2
+        elif breakout >= 1: bo_score = 1
+        else:               bo_score = 0
 
-        total = ma_score + eb_score + pos_score + bo_score
-
-        # ── EB percentile for display ─────────────────────────────────────────
+        total  = ma_score + eb_score + pos_score + bo_score
         eb_pct = round(bars_beaten_pct, 1)
 
         return {
-            "symbol":      symbol.replace(".TO",""),
-            "direction":   direction,
-            "score":       total,
-            "ma_score":    ma_score,
-            "eb_score":    eb_score,
-            "pos_score":   pos_score,
-            "bo_score":    bo_score,
-            "close":       round(close, 2),
-            "eb_pct":      eb_pct,
-            "close_pos":   round(close_pos, 1),
-            "ma20":        round(ma20, 2),
-            "ma200":       round(ma200, 2),
-            "ma_diff_pct": round(ma_diff_pct, 2),
-            "high_10d":    round(high_10d, 2),
-            "low_10d":     round(low_10d, 2),
-            "range_pct":   round(range_pct, 2),
-            "breakout_pct":round(breakout, 2),
+            "symbol":       symbol.replace(".TO",""),
+            "direction":    direction,
+            "score":        total,
+            "ma_score":     ma_score,
+            "eb_score":     eb_score,
+            "pos_score":    pos_score,
+            "bo_score":     bo_score,
+            "close":        round(close, 2),
+            "eb_pct":       eb_pct,
+            "close_pos":    round(close_pos, 1),
+            "ma20":         round(ma20, 2),
+            "ma200":        round(ma200, 2),
+            "ma_diff_pct":  round(ma_diff_pct, 2),
+            "high_10d":     round(high_10d, 2),
+            "low_10d":      round(low_10d, 2),
+            "range_pct":    round(range_pct, 2),
+            "breakout_pct": round(breakout, 2),
         }
     except: return None
 
@@ -360,7 +331,6 @@ def display_results(results):
     bears = [r for r in results if r["direction"] == "BEAR"]
     holy  = [r for r in results if r["score"] >= 9]
 
-    # Stats
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.markdown(f'<div class="stat-box"><div class="stat-number metric-gold">{len(holy)}</div><div class="stat-label">🏆 Holy Grail (9+)</div></div>', unsafe_allow_html=True)
@@ -373,7 +343,7 @@ def display_results(results):
 
     st.markdown("<br>", unsafe_allow_html=True)
 
- def render_card(r, card_class, name_class):
+    def render_card(r, card_class, name_class):
         direction_emoji = "🐘" if r["direction"] == "BULL" else "🐻"
         close_color = "metric-green" if r["direction"] == "BULL" else "metric-red"
         st.markdown(f"""
@@ -398,26 +368,21 @@ def display_results(results):
             </div>
         </div>""", unsafe_allow_html=True)
 
-    # Holy Grail setups first
     if holy:
         st.markdown('<div class="bull-header">🏆 HOLY GRAIL SETUPS — SCORE 9+ — HIGHEST CONVICTION</div>', unsafe_allow_html=True)
         for r in holy:
-            card = "holy-grail-card"
-            name = "gold-name"
-            render_card(r, card, name)
+            render_card(r, "holy-grail-card", "gold-name")
 
-    # Bull Elephants
     regular_bulls = [r for r in bulls if r["score"] < 9]
     if bulls:
         st.markdown('<div class="bull-header">🐘 BULL ELEPHANTS — LONG SETUPS (Position +1)</div>', unsafe_allow_html=True)
-        for r in (holy if not regular_bulls else regular_bulls):
+        for r in (regular_bulls if regular_bulls else holy):
             if r["direction"] == "BULL":
                 render_card(r, "bull-card", "bull-name")
 
     if not bulls:
         st.markdown('<div style="color:#1a3a1a;font-family:Space Mono,monospace;font-size:0.75rem;text-align:center;padding:1rem;border:1px dashed #1a3a1a;border-radius:8px;margin-bottom:1rem">🐘 No Bull Elephant setups today</div>', unsafe_allow_html=True)
 
-    # Bear Elephants
     if bears:
         st.markdown('<div class="bear-header">🐻 BEAR ELEPHANTS — SHORT SETUPS (Position -1) — Questrade Margin</div>', unsafe_allow_html=True)
         for r in bears:
@@ -456,7 +421,7 @@ else:
         CLICK RUN SCAN TO START<br><br>
         Scans 640+ TSX stocks<br>
         Detects consolidation breakouts (Narrow State) elephant bar<br>
-       Run after 4:00pm EST on trading days
+        Run after 4:00pm EST on trading days
     </div>""", unsafe_allow_html=True)
 
 # ── Footer ─────────────────────────────────────────────────────────────────────
