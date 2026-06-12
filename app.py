@@ -410,7 +410,7 @@ if run:
     with st.spinner(""):
         results = run_holy_grail_scan()
         st.session_state["hg_results"] = results
-        st.session_state["hg_time"]    = datetime.now().strftime("%Y-%m-%d %H:%M ET")
+        st.session_state["hg_time"]    = datetime.now().strftime("%Y-%m-%d %H:%M UTC")
 
 if "hg_results" in st.session_state:
     st.markdown(f'<div class="timestamp">Last scan: {st.session_state["hg_time"]}</div>', unsafe_allow_html=True)
