@@ -420,7 +420,8 @@ else:
     <div class="no-results">
         CLICK RUN SCAN TO START<br><br>
         Scans 640+ TSX stocks<br>
-        Detects consolidation (Narrow State) breakouts elephant bars<br>
+        Detects tight consolidation (Narrow State)<br>
+         Displays elephant bar breakouts<br>
         Run after 4:00pm EST on trading days
     </div>""", unsafe_allow_html=True)
 
