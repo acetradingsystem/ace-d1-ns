@@ -357,7 +357,7 @@ def display_results(results):
             </div>
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.8rem;margin-bottom:0.8rem">
                 <div><div class="metric-label">Price CAD</div><div class="metric-value {close_color}">${r['close']:,.2f}</div></div>
-                <div><div class="metric-label">EB Strength</div><div class="metric-value metric-gold">{r['eb_pct']}%</div></div>
+                <div><div class="metric-label">EB Strength</div><div class="metric-value metric-gold">{int(r['eb_pct'])}%</div></div>
                 <div><div class="metric-label">Close Pos</div><div class="metric-value">{r['close_pos']}%</div></div>
                 <div><div class="metric-label">Breakout</div><div class="metric-value {close_color}">+{r['breakout_pct']}%</div></div>
             </div>
